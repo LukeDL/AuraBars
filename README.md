@@ -1,71 +1,71 @@
 # AuraBars (WoW AddOn)
 
-Addon simples para World of Warcraft (Retail) que substitui a visualização padrão de buffs/debuffs por barras.
+A simple World of Warcraft (Retail) addon that replaces the default buff/debuff display with bars.
 
-## Recursos
+## Features
 
-- Mostra buffs do jogador em barras com ícone, nome e tempo restante
-- Mostra debuffs em barras separadas
-- Atualiza o tempo em tempo real
-- Permite cancelar buff com botão direito na barra
-- Buffs e debuffs em frames independentes (movimentação separada)
-- Mostra âncoras visuais de arraste quando destravado
-- Aplica borda de destaque em Private Auras (quando o dado estiver disponível)
+- Shows player buffs as bars with icon, name, and remaining time
+- Shows debuffs in separate bars
+- Updates timers in real time
+- Allows canceling a buff with right click on the bar
+- Buff and debuff frames are independent (moved separately)
+- Shows drag anchors when unlocked
+- Applies a highlight border for Private Auras (when data is available)
 
-## Estrutura
+## Structure
 
 - `AuraBars/AuraBars.toc`
-- `AuraBars/AuraBars_Config.lua` (configurações e estado persistido)
-- `AuraBars/AuraBars_Appearance.lua` (aparência/layout/UI de opções)
-- `AuraBars/AuraBars_Behavior.lua` (eventos, leitura de auras e atualização)
+- `AuraBars/AuraBars_Config.lua` (settings and persisted state)
+- `AuraBars/AuraBars_Appearance.lua` (appearance/layout/options UI)
+- `AuraBars/AuraBars_Behavior.lua` (events, aura reads, updates)
 
-## Arquitetura (dev)
+## Architecture (dev)
 
-### Fluxo de inicialização
+### Initialization flow
 
 1. `PLAYER_LOGIN`
-    - `EnsureDB()` carrega/saneia `AuraBarsDB`
-    - `ApplyDBToConfig()` aplica limites de barras ao runtime
-    - `HideBlizzardAuraFrames()` desativa os frames padrão
-    - `CreateRoot()` cria root, headers e âncora de arraste
-    - `EnsureBars()` cria barras necessárias
-    - `ApplyBarTexture()` aplica textura configurada
-    - `RefreshLayout()` aplica escala/posição/layout
-    - `SetupSlashCommands()` registra `/aurabar`
-    - `CreateOptionsPanel()` registra painel nas opções
-    - `UpdateBars()` renderiza estado inicial
+    - `EnsureDB()` loads/sanitizes `AuraBarsDB`
+    - `ApplyDBToConfig()` applies bar limits to runtime config
+    - `HideBlizzardAuraFrames()` disables default Blizzard aura frames
+    - `CreateRoot()` creates roots, headers, and drag anchors
+    - `EnsureBars()` creates required bars
+    - `ApplyBarTexture()` applies selected texture
+    - `RefreshLayout()` applies scale/position/layout
+    - `SetupSlashCommands()` registers `/aurabar`
+    - `CreateOptionsPanel()` registers addon options
+    - `UpdateBars()` renders initial state
 
 2. `PLAYER_ENTERING_WORLD`
-    - `UpdateBars()` para garantir sincronização após loading/zonas
+    - `UpdateBars()` to keep sync after loading/screens/zones
 
 3. `UNIT_AURA` (`player`)
-    - `UpdateBars()` quando buffs/debuffs mudam
+    - `UpdateBars()` whenever buffs/debuffs change
 
 4. `OnUpdate` (tick)
-    - `RefreshTimersOnly()` atualiza apenas progresso/tempo das barras visíveis
+    - `RefreshTimersOnly()` updates only progress/time on visible bars
 
-### Blocos principais
+### Main modules
 
-- **Persistência/config**
+- **Persistence/config**
    - `EnsureDB()`, `ApplyDBToConfig()`, `Clamp()`
-- **Layout e movimento**
+- **Layout and movement**
    - `ApplyRootPosition()`, `RefreshLayout()`, `UpdateMoveAnchorState()`, `CreateRoot()`
-- **Dados de aura/render**
+- **Aura data/rendering**
    - `CollectAuras()`, `UpdateSingleBar()`, `UpdateBars()`, `RefreshTimersOnly()`
-- **Customização visual**
+- **Visual customization**
    - `BAR_TEXTURES`, `GetTextureByKey()`, `GetActiveBarTexturePath()`, `ApplyBarTexture()`
-- **Configuração do usuário**
+- **User configuration**
    - `SetUnlocked()`, `SetScale()`, `SetTexture()`, `SetMaxBuffs()`, `SetMaxDebuffs()`, `ResetSettings()`
-- **UI de opções/comando**
+- **Options/commands UI**
    - `CreateOptionsPanel()`, `OpenOptionsPanel()`, `SetupSlashCommands()`
 
-### Regras de interação
+### Interaction rules
 
-- Clique direito em barra de **buff** tenta cancelar aura (ignora debuff/passivo).
-- Âncora verde só aparece com `unlocked = true`.
-- O addon usa `C_UnitAuras` (Retail) para leitura de auras.
+- Right-click on a **buff** bar attempts to cancel the aura (ignores debuff/passive).
+- Drag anchors only show when `unlocked = true`.
+- The addon uses `C_UnitAuras` (Retail) to read aura data.
 
-### Diagrama (Mermaid)
+### Diagram (Mermaid)
 
 ```mermaid
 flowchart TD
@@ -111,43 +111,43 @@ flowchart TD
    X[UpdateSingleBar] --> K
 ```
 
-## Instalação
+## Installation
 
-1. Feche o jogo.
-2. Copie a pasta `AuraBars` para:
+1. Close the game.
+2. Copy the `AuraBars` folder to:
    - Linux (Wine/Proton): `<WoW>/_retail_/Interface/AddOns/`
    - Windows: `<WoW>\_retail_\Interface\AddOns\`
-3. Abra o jogo e ative o addon na tela de personagens.
+3. Open the game and enable the addon on the character selection screen.
 
-## Observações
+## Notes
 
-- Focado em **Retail** e API moderna (`C_UnitAuras`).
+- Built for **Retail** using the modern API (`C_UnitAuras`).
 
-## Comandos
+## Commands
 
-- `/aurabar`: abre a janela de opções
+- `/aurabar`: opens the options panel
 
-## Janela de opções
+## Options panel
 
-- Abra `Esc > Options > AddOns > AuraBars`
-- Ajuste lock/unlock, escala, quantidade de buffs/debuffs e textura da barra
-- Ajuste também cor e espessura da borda para Private Auras
-- Quando destravado, use a âncora de Buffs e a âncora de Debuffs para mover cada frame de forma independente
+- Open `Esc > Options > AddOns > AuraBars`
+- Configure lock/unlock, scale, buff/debuff bar count, and bar texture
+- Configure Private Aura border color and thickness
+- When unlocked, use the Buff and Debuff anchors to move each frame independently
 
-## Deploy automático no VS Code
+## Automatic deploy in VS Code
 
-- Foi criado o script [scripts/deploy-addon.sh](scripts/deploy-addon.sh)
-- Foi criada a task [.vscode/tasks.json](.vscode/tasks.json) com o nome **Deploy AuraBars**
-- Foi adicionada a variável de ambiente de projeto em [.env](.env)
-- Exemplo para outros ambientes em [.env.example](.env.example)
+- Deploy script: [scripts/deploy-addon.sh](scripts/deploy-addon.sh)
+- VS Code task: [.vscode/tasks.json](.vscode/tasks.json) named **Deploy AuraBars**
+- Project environment variable file: [.env](.env)
+- Example environment file: [.env.example](.env.example)
 
-Como usar:
+How to use:
 
-1. No VS Code, execute `Terminal > Run Task...`
-2. Selecione **Deploy AuraBars**
-3. A task usa automaticamente `WOW_ADDONS_DIR` do arquivo `.env`
+1. In VS Code, run `Terminal > Run Task...`
+2. Select **Deploy AuraBars**
+3. The task automatically uses `WOW_ADDONS_DIR` from `.env`
 
-Também é possível rodar manualmente:
+You can also run manually:
 
-- `./scripts/deploy-addon.sh` (usa `.env`)
-- `./scripts/deploy-addon.sh "/caminho/World of Warcraft/_retail_/Interface/AddOns"` (sobrescreve o `.env`)
+- `./scripts/deploy-addon.sh` (uses `.env`)
+- `./scripts/deploy-addon.sh "/path/to/World of Warcraft/_retail_/Interface/AddOns"` (overrides `.env`)
