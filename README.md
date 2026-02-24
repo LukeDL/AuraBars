@@ -11,12 +11,15 @@ A simple World of Warcraft (Retail) addon that replaces the default buff/debuff 
 - Buff and debuff frames are independent (moved separately)
 - Shows drag anchors when unlocked
 - Applies a highlight border for Private Auras (when data is available)
+- Supports additional bar textures from LibSharedMedia/SharedMedia when available
+- Shows live texture preview in the texture selection area
 
 ## Structure
 
 - `AuraBars/AuraBars.toc`
 - `AuraBars/AuraBars_Config.lua` (settings and persisted state)
-- `AuraBars/AuraBars_Appearance.lua` (appearance/layout/options UI)
+- `AuraBars/AuraBars_Appearance.lua` (appearance/layout and root frames)
+- `AuraBars/AuraBars_Options.lua` (options UI and texture picker)
 - `AuraBars/AuraBars_Behavior.lua` (events, aura reads, updates)
 
 ## Architecture (dev)

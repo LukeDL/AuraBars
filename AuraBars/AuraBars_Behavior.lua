@@ -253,8 +253,19 @@ AuraBars:SetScript("OnEvent", function(_, event, unit)
         A.ApplyPrivateBorderStyle()
         A.RefreshLayout()
         SetupSlashCommands()
+        A.CreateMinimapButton()
         A.CreateOptionsPanel()
         A.UpdateBars()
+    elseif event == "ADDON_LOADED" then
+        if unit == "LibSharedMedia-3.0" or unit == "SharedMedia" or unit == "SharedMedia_MyMedia" then
+            A.InitSharedMedia()
+            A.RebuildTextureRegistry()
+            if AuraBarsDB then
+                AuraBarsDB.texture = A.GetTextureByKey(AuraBarsDB.texture).key
+                A.ApplyBarTexture()
+                A.RefreshTextureDropdownUI()
+            end
+        end
     elseif event == "PLAYER_ENTERING_WORLD" then
         A.UpdateBars()
     elseif event == "UNIT_AURA" and unit == "player" then
@@ -272,5 +283,6 @@ AuraBars:SetScript("OnUpdate", function(_, elapsed)
 end)
 
 AuraBars:RegisterEvent("PLAYER_LOGIN")
+AuraBars:RegisterEvent("ADDON_LOADED")
 AuraBars:RegisterEvent("PLAYER_ENTERING_WORLD")
 AuraBars:RegisterUnitEvent("UNIT_AURA", "player")

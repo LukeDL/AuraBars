@@ -16,16 +16,34 @@ end
 
 -- Mostra/oculta a âncora de arraste conforme estado de desbloqueio.
 function A.UpdateMoveAnchorState()
-    if not S.buffMoveAnchor or not S.debuffMoveAnchor then
-        return
+    if S.buffRoot then
+        S.buffRoot:Show()
     end
 
-    if AuraBarsDB.unlocked then
-        S.buffMoveAnchor:Show()
-        S.debuffMoveAnchor:Show()
-    else
-        S.buffMoveAnchor:Hide()
-        S.debuffMoveAnchor:Hide()
+    if S.debuffRoot then
+        S.debuffRoot:Show()
+    end
+
+    if S.buffMoveAnchor then
+        S.buffMoveAnchor:EnableMouse(AuraBarsDB.unlocked)
+        if AuraBarsDB.unlocked then
+            S.buffMoveAnchor:RegisterForDrag("LeftButton")
+            S.buffMoveAnchor:Show()
+        else
+            S.buffMoveAnchor:RegisterForDrag()
+            S.buffMoveAnchor:Hide()
+        end
+    end
+
+    if S.debuffMoveAnchor then
+        S.debuffMoveAnchor:EnableMouse(AuraBarsDB.unlocked)
+        if AuraBarsDB.unlocked then
+            S.debuffMoveAnchor:RegisterForDrag("LeftButton")
+            S.debuffMoveAnchor:Show()
+        else
+            S.debuffMoveAnchor:RegisterForDrag()
+            S.debuffMoveAnchor:Hide()
+        end
     end
 end
 
@@ -202,214 +220,6 @@ function A.EnsureBars()
     end
 end
 
--- Helper para criar labels no painel de opções com âncora e texto.
-function A.CreateLabel(parent, text, anchor, x, y)
-    local label = parent:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    label:SetPoint(anchor, parent, anchor, x, y)
-    label:SetText(text)
-    return label
-end
-
--- Abre o painel de opções em APIs novas ou legadas do WoW.
-function A.OpenOptionsPanel()
-    if Settings and Settings.OpenToCategory and S.optionsCategory then
-        Settings.OpenToCategory(S.optionsCategory.ID)
-        return
-    end
-
-    if InterfaceOptionsFrame_OpenToCategory then
-        InterfaceOptionsFrame_OpenToCategory("AuraBars")
-        InterfaceOptionsFrame_OpenToCategory("AuraBars")
-    end
-end
-
--- Monta e registra o painel de opções do addon na interface do jogo.
-function A.CreateOptionsPanel()
-    local panel = CreateFrame("Frame", "AuraBarsOptionsPanel")
-    panel.name = "AuraBars"
-
-    local title = panel:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
-    title:SetPoint("TOPLEFT", 16, -16)
-    title:SetText("AuraBars")
-
-    local subtitle = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-    subtitle:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -8)
-    subtitle:SetText("Configurações das barras de buffs/debuffs")
-
-    local lockCheck = CreateFrame("CheckButton", "AuraBarsOptionsLockCheck", panel, "InterfaceOptionsCheckButtonTemplate")
-    lockCheck:SetPoint("TOPLEFT", subtitle, "BOTTOMLEFT", 0, -16)
-    lockCheck.Text:SetText("Travar frame (desmarque para arrastar)")
-    lockCheck:SetScript("OnClick", function(self)
-        A.SetUnlocked(not self:GetChecked())
-    end)
-
-    A.CreateLabel(panel, "Escala", "TOPLEFT", 16, -110)
-    local scaleSlider = CreateFrame("Slider", "AuraBarsOptionsScaleSlider", panel, "OptionsSliderTemplate")
-    scaleSlider:SetPoint("TOPLEFT", 16, -130)
-    scaleSlider:SetWidth(260)
-    scaleSlider:SetMinMaxValues(0.5, 2.0)
-    scaleSlider:SetValueStep(0.05)
-    scaleSlider.Low:SetText("0.5")
-    scaleSlider.High:SetText("2.0")
-    scaleSlider.Text:SetText("Escala")
-
-    local scaleValue = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-    scaleValue:SetPoint("LEFT", scaleSlider, "RIGHT", 12, 0)
-    scaleSlider:SetScript("OnValueChanged", function(_, value)
-        A.SetScale(value)
-        scaleValue:SetText(string.format("%.2f", AuraBarsDB.scale))
-    end)
-
-    A.CreateLabel(panel, "Barras de Buff", "TOPLEFT", 16, -190)
-    local buffSlider = CreateFrame("Slider", "AuraBarsOptionsBuffSlider", panel, "OptionsSliderTemplate")
-    buffSlider:SetPoint("TOPLEFT", 16, -210)
-    buffSlider:SetWidth(260)
-    buffSlider:SetMinMaxValues(1, 40)
-    buffSlider:SetValueStep(1)
-    buffSlider.Low:SetText("1")
-    buffSlider.High:SetText("40")
-    buffSlider.Text:SetText("Quantidade de Buffs")
-
-    local buffValue = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-    buffValue:SetPoint("LEFT", buffSlider, "RIGHT", 12, 0)
-    buffSlider:SetScript("OnValueChanged", function(_, value)
-        A.SetMaxBuffs(value)
-        buffValue:SetText(tostring(AuraBarsDB.maxBuffs))
-    end)
-
-    A.CreateLabel(panel, "Barras de Debuff", "TOPLEFT", 16, -270)
-    local debuffSlider = CreateFrame("Slider", "AuraBarsOptionsDebuffSlider", panel, "OptionsSliderTemplate")
-    debuffSlider:SetPoint("TOPLEFT", 16, -290)
-    debuffSlider:SetWidth(260)
-    debuffSlider:SetMinMaxValues(1, 40)
-    debuffSlider:SetValueStep(1)
-    debuffSlider.Low:SetText("1")
-    debuffSlider.High:SetText("40")
-    debuffSlider.Text:SetText("Quantidade de Debuffs")
-
-    local debuffValue = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-    debuffValue:SetPoint("LEFT", debuffSlider, "RIGHT", 12, 0)
-    debuffSlider:SetScript("OnValueChanged", function(_, value)
-        A.SetMaxDebuffs(value)
-        debuffValue:SetText(tostring(AuraBarsDB.maxDebuffs))
-    end)
-
-    local textureLabel = A.CreateLabel(panel, "Textura da barra", "TOPLEFT", 16, -350)
-    textureLabel:SetText("Textura da barra")
-
-    local textureDropdown = CreateFrame("Frame", "AuraBarsOptionsTextureDropdown", panel, "UIDropDownMenuTemplate")
-    textureDropdown:SetPoint("TOPLEFT", 0, -366)
-
-    UIDropDownMenu_SetWidth(textureDropdown, 220)
-    UIDropDownMenu_Initialize(textureDropdown, function(_, level)
-        if level ~= 1 then
-            return
-        end
-
-        for i = 1, #A.BAR_TEXTURES do
-            local texture = A.BAR_TEXTURES[i]
-            local info = UIDropDownMenu_CreateInfo()
-            info.text = texture.label .. " (" .. texture.key .. ")"
-            info.checked = AuraBarsDB.texture == texture.key
-            info.func = function()
-                A.SetTexture(texture.key)
-                UIDropDownMenu_SetSelectedValue(textureDropdown, texture.key)
-                UIDropDownMenu_SetText(textureDropdown, texture.label)
-            end
-            info.value = texture.key
-            UIDropDownMenu_AddButton(info, level)
-        end
-    end)
-
-    local privateColorLabel = A.CreateLabel(panel, "Cor da borda (Private Aura)", "TOPLEFT", 16, -430)
-    privateColorLabel:SetText("Cor da borda (Private Aura)")
-
-    local privateColorDropdown = CreateFrame("Frame", "AuraBarsOptionsPrivateBorderColorDropdown", panel, "UIDropDownMenuTemplate")
-    privateColorDropdown:SetPoint("TOPLEFT", 0, -446)
-
-    UIDropDownMenu_SetWidth(privateColorDropdown, 220)
-    UIDropDownMenu_Initialize(privateColorDropdown, function(_, level)
-        if level ~= 1 then
-            return
-        end
-
-        for i = 1, #A.PRIVATE_BORDER_COLORS do
-            local color = A.PRIVATE_BORDER_COLORS[i]
-            local info = UIDropDownMenu_CreateInfo()
-            info.text = color.label .. " (" .. color.key .. ")"
-            info.checked = AuraBarsDB.privateBorderColor == color.key
-            info.func = function()
-                A.SetPrivateBorderColor(color.key)
-                UIDropDownMenu_SetSelectedValue(privateColorDropdown, color.key)
-                UIDropDownMenu_SetText(privateColorDropdown, color.label)
-            end
-            info.value = color.key
-            UIDropDownMenu_AddButton(info, level)
-        end
-    end)
-
-    A.CreateLabel(panel, "Espessura da borda", "TOPLEFT", 16, -508)
-    local privateThicknessSlider = CreateFrame("Slider", "AuraBarsOptionsPrivateBorderThicknessSlider", panel, "OptionsSliderTemplate")
-    privateThicknessSlider:SetPoint("TOPLEFT", 16, -528)
-    privateThicknessSlider:SetWidth(260)
-    privateThicknessSlider:SetMinMaxValues(4, 24)
-    privateThicknessSlider:SetValueStep(1)
-    privateThicknessSlider.Low:SetText("4")
-    privateThicknessSlider.High:SetText("24")
-    privateThicknessSlider.Text:SetText("Espessura")
-
-    local privateThicknessValue = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-    privateThicknessValue:SetPoint("LEFT", privateThicknessSlider, "RIGHT", 12, 0)
-    privateThicknessSlider:SetScript("OnValueChanged", function(_, value)
-        A.SetPrivateBorderThickness(value)
-        privateThicknessValue:SetText(tostring(AuraBarsDB.privateBorderThickness))
-    end)
-
-    local resetButton = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
-    resetButton:SetPoint("TOPLEFT", 16, -580)
-    resetButton:SetSize(120, 24)
-    resetButton:SetText("Restaurar")
-    resetButton:SetScript("OnClick", function()
-        A.ResetSettings()
-        panel:Refresh()
-    end)
-
-    -- Recarrega valores atuais do perfil para controles da interface.
-    function panel:Refresh()
-        lockCheck:SetChecked(not AuraBarsDB.unlocked)
-        scaleSlider:SetValue(AuraBarsDB.scale)
-        buffSlider:SetValue(AuraBarsDB.maxBuffs)
-        debuffSlider:SetValue(AuraBarsDB.maxDebuffs)
-        scaleValue:SetText(string.format("%.2f", AuraBarsDB.scale))
-        buffValue:SetText(tostring(AuraBarsDB.maxBuffs))
-        debuffValue:SetText(tostring(AuraBarsDB.maxDebuffs))
-
-        local activeTexture = A.GetTextureByKey(AuraBarsDB.texture)
-        UIDropDownMenu_SetSelectedValue(textureDropdown, activeTexture.key)
-        UIDropDownMenu_SetText(textureDropdown, activeTexture.label)
-
-        local activePrivateColor = A.GetPrivateBorderColorByKey(AuraBarsDB.privateBorderColor)
-        UIDropDownMenu_SetSelectedValue(privateColorDropdown, activePrivateColor.key)
-        UIDropDownMenu_SetText(privateColorDropdown, activePrivateColor.label)
-        privateThicknessSlider:SetValue(AuraBarsDB.privateBorderThickness)
-        privateThicknessValue:SetText(tostring(AuraBarsDB.privateBorderThickness))
-    end
-
-    panel:SetScript("OnShow", function(self)
-        self:Refresh()
-    end)
-
-    if Settings and Settings.RegisterCanvasLayoutCategory then
-        local category = Settings.RegisterCanvasLayoutCategory(panel, "AuraBars")
-        category.ID = "AuraBars"
-        Settings.RegisterAddOnCategory(category)
-        S.optionsCategory = category
-    elseif InterfaceOptions_AddCategory then
-        InterfaceOptions_AddCategory(panel)
-        S.optionsCategory = panel
-    end
-end
-
 -- Cria frame raiz, cabeçalhos e âncora de arraste para o addon.
 function A.CreateRoot()
     S.buffRoot = CreateFrame("Frame", "AuraBarsBuffRoot", UIParent, "BackdropTemplate")
@@ -539,4 +349,50 @@ function A.CreateRoot()
     S.debuffsHeader = CreateFrame("Frame", nil, S.debuffRoot)
     S.debuffsHeader:SetSize(A.CONFIG.width, (A.CONFIG.maxDebuffs * A.CONFIG.height) + ((A.CONFIG.maxDebuffs - 1) * A.CONFIG.spacing))
     S.debuffsHeader:SetPoint("TOPLEFT", S.debuffRoot, "TOPLEFT", 0, 0)
+end
+
+-- Cria botão no minimapa para abrir rapidamente o painel de opções.
+function A.CreateMinimapButton()
+    if S.minimapButton or not Minimap then
+        return
+    end
+
+    local button = CreateFrame("Button", "AuraBarsMinimapButton", Minimap)
+    button:SetSize(31, 31)
+    button:SetFrameStrata("MEDIUM")
+    button:SetPoint("TOPLEFT", Minimap, "TOPLEFT", 2, -2)
+    button:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+
+    local background = button:CreateTexture(nil, "BACKGROUND")
+    background:SetTexture("Interface\\Minimap\\MiniMap-TrackingBackground")
+    background:SetAllPoints()
+
+    local icon = button:CreateTexture(nil, "ARTWORK")
+    icon:SetTexture("Interface\\Icons\\INV_Misc_PocketWatch_01")
+    icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+    icon:SetSize(18, 18)
+    icon:SetPoint("CENTER", button, "CENTER", 0, 1)
+
+    local border = button:CreateTexture(nil, "OVERLAY")
+    border:SetTexture("Interface\\Minimap\\MiniMap-TrackingBorder")
+    border:SetSize(53, 53)
+    border:SetPoint("TOPLEFT")
+    border:SetBlendMode("ADD")
+
+    button:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_LEFT")
+        GameTooltip:AddLine("AuraBars")
+        GameTooltip:AddLine("Clique para abrir as opções", 0.8, 0.8, 0.8)
+        GameTooltip:Show()
+    end)
+
+    button:SetScript("OnLeave", function()
+        GameTooltip:Hide()
+    end)
+
+    button:SetScript("OnClick", function()
+        A.OpenOptionsPanel()
+    end)
+
+    S.minimapButton = button
 end

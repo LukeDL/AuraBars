@@ -12,10 +12,13 @@ A.state = A.state or {
     debuffsHeader = nil,
     buffMoveAnchor = nil,
     debuffMoveAnchor = nil,
+    minimapButton = nil,
     optionsCategory = nil,
     buffBars = {},
     debuffBars = {},
     elapsedSinceUpdate = 0,
+    textureDropdown = nil,
+    texturePreview = nil,
 }
 
 A.CONFIG = {
@@ -37,7 +40,7 @@ A.DEFAULTS = {
     maxBuffs = 10,
     maxDebuffs = 10,
     unlocked = false,
-    texture = "default",
+    texture = "builtin:default",
     privateBorderColor = "gold",
     privateBorderThickness = 12,
 }
@@ -54,6 +57,10 @@ A.BAR_TEXTURES = {
     { key = "banto", label = "BantoBar", path = "Interface\\RAIDFRAME\\Raid-Bar-Hp-Fill" },
     { key = "ui", label = "UI-StatusBar", path = "Interface\\TARGETINGFRAME\\UI-StatusBar" },
 }
+
+A.sharedMedia = nil
+A.textureRegistry = {}
+A.textureByKey = {}
 
 A.PRIVATE_BORDER_COLORS = {
     { key = "gold", label = "Dourado", r = 0.95, g = 0.82, b = 0.12, a = 1 },
@@ -80,13 +87,72 @@ end
 
 -- Procura uma textura pelo identificador e retorna fallback se não encontrar.
 function A.GetTextureByKey(textureKey)
+    if #A.textureRegistry == 0 then
+        A.RebuildTextureRegistry()
+    end
+
+    if A.textureByKey[textureKey] then
+        return A.textureByKey[textureKey]
+    end
+
+    return A.textureRegistry[1]
+end
+
+-- Inicializa integração opcional com LibSharedMedia-3.0 quando disponível.
+function A.InitSharedMedia()
+    if A.sharedMedia then
+        return A.sharedMedia
+    end
+
+    if not LibStub then
+        return nil
+    end
+
+    local lib = LibStub("LibSharedMedia-3.0", true)
+    if lib then
+        A.sharedMedia = lib
+    end
+
+    return A.sharedMedia
+end
+
+-- Reconstrói o catálogo de texturas combinando built-ins e SharedMedia.
+function A.RebuildTextureRegistry()
+    A.textureRegistry = {}
+    A.textureByKey = {}
+
     for i = 1, #A.BAR_TEXTURES do
-        if A.BAR_TEXTURES[i].key == textureKey then
-            return A.BAR_TEXTURES[i]
+        local builtIn = A.BAR_TEXTURES[i]
+        local entry = {
+            key = "builtin:" .. builtIn.key,
+            label = builtIn.label,
+            path = builtIn.path,
+            source = "Built-in",
+        }
+        A.textureRegistry[#A.textureRegistry + 1] = entry
+        A.textureByKey[entry.key] = entry
+    end
+
+    local lsm = A.InitSharedMedia()
+    if lsm and lsm.List and lsm.Fetch then
+        local lsmList = lsm:List("statusbar") or {}
+        for i = 1, #lsmList do
+            local mediaName = lsmList[i]
+            local mediaPath = lsm:Fetch("statusbar", mediaName, true)
+            if mediaPath then
+                local entry = {
+                    key = "lsm:" .. mediaName,
+                    label = mediaName,
+                    path = mediaPath,
+                    source = "SharedMedia",
+                }
+                A.textureRegistry[#A.textureRegistry + 1] = entry
+                A.textureByKey[entry.key] = entry
+            end
         end
     end
 
-    return A.BAR_TEXTURES[1]
+    return A.textureRegistry
 end
 
 -- Procura uma cor de borda de private aura pelo identificador e retorna fallback.
@@ -109,6 +175,8 @@ end
 -- Inicializa e valida as configurações persistidas em AuraBarsDB.
 function A.EnsureDB()
     AuraBarsDB = AuraBarsDB or {}
+
+    A.RebuildTextureRegistry()
 
     if AuraBarsDB.buffX == nil then
         if AuraBarsDB.x ~= nil then
@@ -139,6 +207,10 @@ function A.EnsureDB()
     AuraBarsDB.scale = A.Clamp(AuraBarsDB.scale, 0.5, 2.0)
     AuraBarsDB.maxBuffs = A.Clamp(math.floor(AuraBarsDB.maxBuffs), 1, 40)
     AuraBarsDB.maxDebuffs = A.Clamp(math.floor(AuraBarsDB.maxDebuffs), 1, 40)
+    if AuraBarsDB.texture and not string.find(AuraBarsDB.texture, ":", 1, true) then
+        AuraBarsDB.texture = "builtin:" .. AuraBarsDB.texture
+    end
+
     AuraBarsDB.texture = A.GetTextureByKey(AuraBarsDB.texture).key
     AuraBarsDB.privateBorderColor = A.GetPrivateBorderColorByKey(AuraBarsDB.privateBorderColor).key
     AuraBarsDB.privateBorderThickness = A.Clamp(math.floor(AuraBarsDB.privateBorderThickness), 4, 24)
