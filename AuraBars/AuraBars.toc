@@ -1,0 +1,10 @@
+## Interface: 120000
+## Title: AuraBars
+## Notes: Exibe buffs e debuffs do jogador em barras.
+## Author: lukedl
+## Version: 0.1.0
+## SavedVariables: AuraBarsDB
+
+AuraBars_Config.lua
+AuraBars_Appearance.lua
+AuraBars_Behavior.lua
